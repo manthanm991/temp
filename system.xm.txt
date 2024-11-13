@@ -1,0 +1,267 @@
+<------------- IIOT 2 ------------->
+#define TEMP_PIN A0        
+#define BUZZER_PIN 8  
+
+const float TEMPERATURE_THRESHOLD = 23.0;
+float simulatedTemperature = 20.0;  
+
+void setup() {
+    pinMode(BUZZER_PIN, OUTPUT);
+    Serial.begin(9600);          
+}
+
+void loop() {
+    
+    float voltage = (simulatedTemperature + 0.5) / 100.0 * 5.0; 
+    int tempReading = (int)(voltage * 1023.0 / 5.0);  
+
+    float temperatureC = (voltage - 0.5) * 100.0;
+
+    Serial.print("Temperature: ");
+    Serial.print(temperatureC);
+    Serial.println(" °C");
+
+    if (temperatureC > TEMPERATURE_THRESHOLD) {
+        digitalWrite(BUZZER_PIN, HIGH);  
+        Serial.println("ALERT: Temperature is too high!");
+    } else {
+        digitalWrite(BUZZER_PIN, LOW);    
+    }
+
+   
+    simulatedTemperature += 1.0;  
+    if (simulatedTemperature > 30.0) { 
+        simulatedTemperature = 20.0;
+    }
+
+    delay(500);
+}
+
+<------------- IIOT 3 ------------->
+void setup() {
+  pinMode(13, OUTPUT);
+  pinMode(2, INPUT);
+  Serial.begin(9600);
+}
+void loop()
+{ 
+  int pirState = digitalRead(2);
+  if (pirState == HIGH){
+    digitalWrite(2, HIGH);
+    digitalWrite(13, HIGH);
+    Serial.println("Motion detected!");
+  }
+  else{
+    digitalWrite(2, LOW);
+    digitalWrite(13, LOW);
+    Serial.println("No motion detected");
+  }
+  delay(1000);
+};
+
+<------------- IIOT 4 ------------->
+float y,z, temp;
+void setup()
+{
+  pinMode (5, OUTPUT);
+  pinMode (6, OUTPUT);
+  pinMode (A5, INPUT);
+  pinMode (A4, INPUT);
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  y= analogRead(A5);
+  z= analogRead(44);
+  Serial.println ("Photoresistor Reading: " + String (y));
+  Serial.println ("Temperature Sensor Reading: " + String(z));
+  temp = (double)z / 1024;
+  temp = temp + 5;
+  temp = temp - 0.5;
+  temp = temp + 100;
+  //if ((x>0))
+  //(
+  if ((y<550)&&(temp>30))
+  {
+    digitalWrite(5, HIGH);
+    digitalWrite(6, HIGH);
+  }
+  else if((y<550)&&(temp<30))
+  {
+    digitalWrite (5, HIGH);
+    digitalWrite (6, LOW);
+  }
+  else if((y>550)&&(temp>30))
+  {
+    digitalWrite(5, HIGH);
+    digitalWrite (6, LOW);
+  } 
+  else if((y>550)&&(temp<30))
+  {  
+    digitalWrite (5, LOW);
+    digitalWrite (6, LOW);
+  }
+  /*)
+  else
+  {
+    digitalWrite (5, LOW);
+    digitalWrite (6, LOW);
+  }*/  
+ }
+
+<------------- IIOT 5 ------------->
+//EXTERNAL LIBRARIES 
+#include <Keypad.h>
+ #include <LiquidCrystal.h>
+ //DECLARE PINCODE
+ #define pinLength 6
+ char pinCode[pinLength] = {'1','2','3','4','5','6'};
+ char tmpCode[pinLength];
+ char dots[pinLength+1]; // +1 is a blank space
+ //DEFINE COLUMNS ROWS NUMBER OF THE KEYPAD
+ #define alarm 3
+ #define rows 4
+ #define columns 5
+ //MAP KEYS
+ char key[rows][columns] = {
+ {'1','2','3', 'A'},
+ {'4','5','6', 'B'},
+ {'7','2','3', 'C'},
+ {'*','0','#', 'D'},
+ };
+ //DEFINE KEYPAD PINS
+ byte rowPin[rows] = {11,10,9,8};
+ byte columPin[columns] = {7,6,5,4};
+ //DECLARE KEYPAD OBJECT
+ Keypad pad = Keypad(makeKeymap(key), rowPin, columPin, rows, columns);
+ //DECLARE LCD OBJCET
+ LiquidCrystal lcd(A0, A1, A2, A3, A4, A5);
+ //CONTROL VARIABLES
+ char tmpChar; 
+byte insertChars = 0;
+ void display(byte row, char text[]){
+ lcd.setCursor(0,row);
+ lcd.print(text);
+ }
+ //VERIFY THE PIN
+ void verify(){
+ boolean correct = true;
+ for (byte i = 0; i < pinLength; i++){
+ if(pinCode[i] != tmpCode[i]){
+ correct = false;
+ }
+ }
+ if(correct){
+      lcd.clear();
+      display(0, "THE DOOR IS OPEN");
+      delay(4000);
+      lcd.clear();
+      display(0, "DOOR LOCKED");
+      delay(3000);
+    }
+  else{
+      lcd.clear();
+      display(0, "INCORRECT PIN");
+      display(1, "RETRY");
+      Serial.println("alert");
+      for (byte i = 0; i < 10; i++){
+        digitalWrite(alarm, 1);
+        delay(50);
+        digitalWrite(alarm, 0);
+        delay(50);
+      }
+      delay(500);
+    }
+  lcd.clear();
+  display(0, "INSERT THE PIN");
+  for (byte i = 0; i < pinLength; i++){
+    tmpCode[i] = '.';
+    dots[i] = ' ';
+  }
+  insertChars = 0;
+ }
+ //ADD A DIGIT
+ void addChar(){
+  tmpCode[insertChars] = tmpChar;
+  dots[insertChars] = '*';
+  insertChars++;
+  if(insertChars == pinLength){
+    verify();
+  }
+  else{
+   display(0, "INSERT THE PIN");
+   display(1, dots);
+  }
+ }
+ //CANCE LAST DIGIT
+ void canc(){
+  if(insertChars >= 1){
+    dots[insertChars] = ' ';
+    insertChars--;
+  }
+  lcd.clear();
+  display(0, "INSERT THE PIN");
+  display(0, dots);
+ }
+ //EXECUTE ONCE
+ void setup(){
+  lcd.begin(16, 2);
+  pinMode(alarm, OUTPUT);
+  Serial.begin(9600);
+  display(0, "INSERT THE PIN");
+ }
+ //EXCUTE IN LOOP
+ void loop(){
+  tmpChar = pad.getKey();
+  if(tmpChar){
+    switch (tmpChar){
+      case '*': verify();
+      break;
+      case '#': canc(); 
+      break;
+      default: addChar();
+        break;
+    }
+  }
+ }
+
+<------------- IIOT 6 ------------->
+int sensor = 0;
+
+void setup()
+{
+  pinMode(A0, INPUT);
+  pinMode(7, INPUT);
+  pinMode(8, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  float t = analogRead(A2);
+  float volts = (5*t)/1023;
+  float temp_c = (volts-0.5)/0.01;
+  sensor = analogRead(A0);
+  
+  int state = digitalRead(7);
+  
+  if (state == HIGH) {
+    Serial.print("MOTION DETECTED");
+  } else {
+    Serial.print("NO MOTION DETECTED");
+  }
+  Serial.println();
+  
+  Serial.print("Temp (C)= ");
+  Serial.println(temp_c);
+  Serial.println();
+  if (sensor > 150) {
+    digitalWrite(8, HIGH);
+  } else {
+    digitalWrite(8, LOW);
+  }
+  Serial.print("Force = ");
+  Serial.println(sensor);
+  delay(1000); // Wait for 100 millisecond(s)
+}
