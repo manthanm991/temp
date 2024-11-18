@@ -1,0 +1,389 @@
+<---------- ML-1 ---------->
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+df = pd.read_csv('winequalityN.csv')
+df
+
+df.info()
+df.describe()
+df.isnull().sum()
+df.isna().sum()
+
+df = df.dropna()
+df
+
+X = df.drop('type', axis=1)
+Y = df['type']
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(X)
+
+pca = PCA(n_components=2)
+principal_components = pca.fit_transform(scaled_data)
+
+principal_df = pd.DataFrame(data=principal_components,
+columns=['PC1', 'PC2'])
+
+final_df = pd.concat([principal_df, df], axis=1)
+final_df
+
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=final_df, x='PC1', y='PC2', hue='type', palette={'red': 'red', 'white': 'blue'})
+plt.title('PCA of Wine Dataset')
+plt.xlabel('Principal Component 1 (PC1)')
+plt.ylabel('Principal Component 2 (PC2)')
+plt.legend(title='Wine Type')
+plt.show()
+<---------- ML-2 ---------->
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+uber_dataset = pd.read_csv("uber.csv")
+uber_dataset
+
+uber_dataset.isnull().sum()
+uber_dataset = uber_dataset.dropna()
+
+plt.figure(figsize=(12, 8))
+plt.subplot(3, 3, 1)
+plt.boxplot(uber_dataset['fare_amount'])
+plt.title('Box plot for fare_amount')
+plt.subplot(3, 3, 2)
+plt.boxplot(uber_dataset['pickup_longitude'])
+plt.title('Box plot for pickup_longitude')
+plt.subplot(3, 3, 3)
+plt.boxplot(uber_dataset['pickup_latitude'])
+plt.title('Box plot for pickup_latitude')
+plt.subplot(3, 3, 4)
+plt.boxplot(uber_dataset['dropoff_longitude'])
+plt.title('Box plot for dropoff_longitude')
+plt.subplot(3, 3, 5)
+plt.boxplot(uber_dataset['dropoff_latitude'])
+plt.title('Box plot for dropoff_latitude')
+plt.subplot(3, 3, 6)
+plt.boxplot(uber_dataset['passenger_count'])
+plt.title('Box plot for passenger_count')
+plt.tight_layout()
+plt.show()
+
+numeric_variables = ['fare_amount', 'passenger_count', 'pickup_longitude', 'pickup_latitude' ,'dropoff_longitude', 'dropoff_latitude']
+for var in numeric_variables:
+    Q1 = uber_dataset[var].quantile(0.25)
+    Q3 = uber_dataset[var].quantile(0.75)
+    IQR = (Q3-Q1)
+    lower_bound = Q1 - 1.5*IQR
+    upper_bound = Q3 + 1.5*IQR
+    uber_dataset = uber_dataset[(uber_dataset[var] >= lower_bound) & (uber_dataset[var] <= upper_bound)]
+uber_dataset
+
+plt.figure(figsize=(12, 8))
+plt.subplot(3, 3, 1)
+plt.boxplot(uber_dataset['fare_amount'])
+plt.title('Box plot for fare_amount')
+plt.subplot(3, 3, 2)
+plt.boxplot(uber_dataset['pickup_longitude'])
+plt.title('Box plot for pickup_longitude')
+plt.subplot(3, 3, 3)
+plt.boxplot(uber_dataset['pickup_latitude'])
+plt.title('Box plot for pickup_latitude')
+plt.subplot(3, 3, 4)
+plt.boxplot(uber_dataset['dropoff_longitude'])
+plt.title('Box plot for dropoff_longitude')
+plt.subplot(3, 3, 5)
+plt.boxplot(uber_dataset['dropoff_latitude'])
+plt.title('Box plot for dropoff_latitude')
+plt.subplot(3, 3, 6)
+plt.boxplot(uber_dataset['passenger_count'])
+plt.title('Box plot for passenger_count')
+plt.tight_layout()
+plt.show()
+
+corrM = uber_dataset.drop(["key", "pickup_datetime"], axis='columns').corr()
+sns.heatmap(corrM, annot=True, cmap='coolwarm')
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import precision_score,confusion_matrix,accuracy_score,recall_score, mean_squared_error, f1_score, r2_score
+
+X = uber_dataset.drop(["key", "pickup_datetime", "fare_amount"], axis=1)
+Y = uber_dataset["fare_amount"]
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=42)
+
+Lasso(random_state=9)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+LiRmodel = LinearRegression()
+LiRmodel.fit(X_train_scaled, Y_train)
+Rmodel = Ridge(solver = 'lsqr', random_state = 10)
+Rmodel.fit(X_train_scaled, Y_train)
+LaRmodel = Lasso(random_state = 9)
+LaRmodel.fit(X_train_scaled, Y_train)
+
+LiRmodel_pred = LiRmodel.predict(X_test_scaled)
+Rmodel_pred = Rmodel.predict(X_test_scaled)
+LaRmodel_pred = LaRmodel.predict(X_test_scaled)
+
+mse = mean_squared_error(Y_test, LiRmodel_pred)
+r2 = r2_score(Y_test, LiRmodel_pred)
+print(f"Mean squared error of the baseline model: {mse}")
+print(f"R2 Score of the baseline model: {r2}")
+
+results_df = pd.DataFrame({
+'Actual': Y_test,
+'Predicted': LiRmodel_pred
+})
+plt.figure(figsize=(6, 6))
+sns.scatterplot(x='Actual', y='Predicted', data=results_df, alpha=0.5)
+plt.plot([results_df['Actual'].min(), results_df['Actual'].max()],
+[results_df['Actual'].min(), results_df['Actual'].max()],
+color='red', linestyle='--')
+plt.xlabel('Actual Fare Amount')
+plt.ylabel('Predicted Fare Amount')
+plt.title('Actual vs. Predicted Fare Amounts')
+plt.grid(True)
+plt.show()
+<---------- ML-3 ---------->
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import precision_score,confusion_matrix,accuracy_score,recall_score, mean_squared_error
+
+dataset = pd.read_csv("Social_Network_Ads.csv")
+dataset
+
+X = dataset.drop(["Purchased", "User ID"], axis=1)
+Y = dataset["Purchased"]
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+model = KNeighborsClassifier(n_neighbors=3)
+model.fit(X_train_scaled, Y_train)
+Y_pred = model.predict(X_test_scaled)
+
+cm= confusion_matrix(Y_test, Y_pred)
+accuracy = accuracy_score(Y_test, Y_pred)
+mse = mean_squared_error(Y_test, Y_pred)
+precision = precision_score(Y_test, Y_pred)
+recall = recall_score(Y_test, Y_pred)
+print("Accuracy:", accuracy)
+print("Precision:", precision)
+print("Recall:", recall)
+print("Mean squared error:", mse)
+print("Confusion of the baseline model: \n", cm)
+
+X_test_df = pd.DataFrame(X_test, columns=X.columns)
+X_test_df['Purchased'] = Y_test.values
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=X_test_df, x='Age', y='EstimatedSalary', hue='Purchased')
+plt.title('Cluster of Purchased and Not Purchased')
+plt.xlabel('Age')
+plt.ylabel('Estimated Salary')
+plt.legend(title='Purchased', loc='upper left')
+plt.show()
+<---------- ML-4 ---------->
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+df = pd.read_csv("Iris.csv")
+df
+
+X = df.drop('Species', axis = 1)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, random_state=0)
+    kmeans.fit(X_scaled)
+    wcss.append(kmeans.inertia_)
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, 11), wcss, marker='o')
+plt.title('Elbow Method for Optimal k')
+plt.xlabel('Number of clusters (k)')
+plt.ylabel('WCSS (Within-cluster sums of squares)')
+plt.grid()
+plt.show()
+
+optimal_k = 3
+kmeans = KMeans(n_clusters=optimal_k, random_state=0)
+clusters = kmeans.fit_predict(X_scaled)
+df['Cluster'] = clusters
+plt.figure(figsize=(10, 6))
+plt.scatter(X_scaled[clusters == 0, 0], X_scaled[clusters == 0, 1], s=100, label='Cluster 1')
+plt.scatter(X_scaled[clusters == 1, 0], X_scaled[clusters == 1, 1], s=100, label='Cluster 2')
+plt.scatter(X_scaled[clusters == 2, 0], X_scaled[clusters == 2, 1], s=100, label='Cluster 3')
+plt.title('Clusters of Iris Species')
+plt.xlabel('Sepal Length (scaled)')
+plt.ylabel('Sepal Width (scaled)')
+plt.legend()
+plt.show()
+<---------- ML-5 ---------->
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
+
+df = pd.read_csv("car_evaluation.csv")
+df
+
+df.isnull().sum()
+
+df.rename(columns={
+'vhigh': 'BuyingPrice',
+'vhigh.1': 'MaintenanceCost',
+'2': 'NumberDoors',
+'2.1': 'NumberPersons',
+'small': 'LugBoot',
+'low': 'Safety',
+'unacc': 'Decision'
+}, inplace=True)
+df.head()
+
+df = pd.get_dummies(df, drop_first=True)
+X = df.drop('Safety_low', axis=1) # Drop one of the safety columns to avoid redundancy
+y = df['Safety_low']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_train, y_train)
+y_pred = rf.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Classification Report:\n", classification_report(y_test, y_pred))
+<---------- ML-6 ---------->
+import numpy as np
+import random
+
+class TicTacToe:
+    def __init__(self):
+        self.board = np.zeros((3, 3), dtype=int)
+
+    def available_actions(self):
+        return [(i, j) for i in range(3) for j in range(3) if self.board[i, j] == 0]
+
+    def make_move(self, row, col, player):
+        self.board[row, col] = player
+
+    def check_winner(self, player):
+        for i in range(3):
+            if np.all(self.board[i, :] == player) or np.all(self.board[:, i] == player):
+                return True
+        if np.all(np.diag(self.board) == player) or np.all(np.diag(np.fliplr(self.board)) == player):
+            return True
+        return False
+
+    def is_full(self):
+        return len(self.available_actions()) == 0
+
+    def reset(self):
+        self.board = np.zeros((3, 3), dtype=int)
+
+class QLearningAgent:
+    def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.1):
+        self.q_table = {}
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
+
+    def get_state(self, board):
+        return str(board.reshape(9))
+
+    def choose_action(self, state, available_actions):
+        if random.uniform(0, 1) < self.epsilon:
+            return random.choice(available_actions)
+        q_values = [self.q_table.get((state, action), 0) for action in available_actions]
+        return available_actions[q_values.index(max(q_values))]
+
+    def update_q_value(self, state, action, reward, next_state, next_actions):
+        old_q = self.q_table.get((state, action), 0)
+        future_q = max([self.q_table.get((next_state, a), 0) for a in next_actions], default=0)
+        new_q = old_q + self.alpha * (reward + self.gamma * future_q - old_q)
+        self.q_table[(state, action)] = new_q
+
+def train_agent(episodes=1000):
+    agent = QLearningAgent()
+    game = TicTacToe()
+    
+    for _ in range(episodes):
+        game.reset()
+        state = agent.get_state(game.board)
+        done = False
+        player = 1
+        
+        while not done:
+            available_actions = game.available_actions()
+            if not available_actions:  # If no actions are available (board is full), break
+                break
+
+            action = agent.choose_action(state, available_actions)
+            game.make_move(action[0], action[1], player)
+
+            if game.check_winner(player):
+                reward = 1 if player == 1 else -1
+                agent.update_q_value(state, action, reward, None, [])
+                break
+
+            if game.is_full():  # If the board is full, it's a draw
+                reward = 0
+                agent.update_q_value(state, action, reward, None, [])
+                break
+
+            next_state = agent.get_state(game.board)
+            next_available_actions = game.available_actions()
+            agent.update_q_value(state, action, 0, next_state, next_available_actions)
+            state = next_state
+            player = 3 - player  # Switch player
+
+    return agent
+
+
+def test_agent(agent, episodes=100):
+    game = TicTacToe()
+    wins = 0
+    
+    for _ in range(episodes):
+        game.reset()
+        state = agent.get_state(game.board)
+        player = 1
+        
+        while True:
+            available_actions = game.available_actions()
+            if not available_actions:  # If no actions are available (board is full), it's a draw
+                break
+
+            action = agent.choose_action(state, available_actions)
+            game.make_move(action[0], action[1], player)
+
+            if game.check_winner(player):
+                if player == 1:
+                    wins += 1
+                break
+
+            if game.is_full():
+                break
+
+            state = agent.get_state(game.board)
+            player = 3 - player  # Switch player
+
+    print(f"Wins: {wins}/{episodes}")
+
+
+agent = train_agent(episodes=1000)
+test_agent(agent, episodes=100)

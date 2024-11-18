@@ -1,0 +1,592 @@
+<---------- DMV-1 ---------->
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df1=pd.read_csv('sales_data_sample.csv', encoding='ISO-8859-1')
+df2=pd.read_json('sales_data_sample.json')
+df3=pd.read_excel('sales_data_sample.xls')
+
+df1.head()
+print(df1.shape)
+df1.info()
+df1.isna().sum()
+df1.describe()
+df1 = df1.drop(['ADDRESSLINE1','ADDRESSLINE2','CITY','STATE','TERRITORY'],axis = 1)
+df1.isna().sum()
+df1 = df1['POSTALCODE'].fillna(df1.POSTALCODE.mode(), inplace=True)
+df1.dtypes
+
+sns.histplot(x='STATUS', data=df1)
+plt.show()
+
+sns.histplot(x='MONTH_ID', data=df1, )
+plt.show()
+
+sns.boxplot( x="STATUS", y= "MONTH_ID", data=df1, )
+plt.show()
+
+sns.scatterplot( x="STATUS", y="MONTH_ID", data=df1,
+ hue='COUNTRY', size='YEAR_ID')
+plt.legend(bbox_to_anchor=(1, 1), loc=2)
+plt.show()
+
+data1=df1[df1["STATUS"]=='Shipped']
+data1.head()
+
+sum_sales = df1['SALES'].sum()
+print("Addition of all sales",sum_sales)
+sales_avg = df1['SALES'].mean()
+print("Average of total sales = ",sales_avg)
+
+Q1 = np.percentile(df1['SALES'], 25,
+interpolation = 'midpoint')
+Q3 = np.percentile(df1['SALES'], 75,
+interpolation = 'midpoint')
+IQR = Q3 - Q1
+print("Old Shape: ", df1.shape)
+upper = np.where(df1['SALES'] >= (Q3+1.5*IQR))
+lower = np.where(df1['SALES'] <= (Q1-1.5*IQR))
+df1.drop(upper[0], inplace = True)
+df1.drop(lower[0], inplace = True)
+print("New Shape: ", df1.shape)
+sns.boxplot(x='SALES', data=df1)
+<---------- DMV-2 ---------->
+import requests
+import pandas as pd
+
+url_weather = 'https://api.openweathermap.org/data/2.5/forecast?q={city_name}&appid={API_key}&units=metric'
+cityName = 'London'
+response = requests.get(url_weather.format(city_name=cityName, API_key=creds.API_KEY))
+
+response_data = response.json()
+response_data
+
+Temperatures = []
+Humidity = []
+Wind_speed =[]
+Datetime =[]
+Timestamp=[]
+weather_description=[]
+
+for i in response_data['list']:
+    Timestamp.append(i['dt'])
+    Temperatures.append(i['main']['temp'])
+    Humidity.append(i['main']['humidity'])
+    Wind_speed.append(i['wind']['speed'])
+    weather_description.append(i['weather'][0]['description'])
+    
+Datetime = [pd.to_datetime(i, unit='s') for i in Timestamp]
+
+weather_data = pd.DataFrame({'Datetime':Datetime,
+              'Temperature': Temperatures,
+              'Humidity': Humidity,
+              'Wind Speed': Wind_speed,
+              'weather_description':weather_description})
+weather_data
+
+precipitation = []
+for entry in response_data['list']:
+    rain = entry.get("rain", {}).get("3h", 0)
+    snow = entry.get("snow", {}).get("3h", 0)
+    total_precipitation = rain + snow
+    precipitation.append(total_precipitation)
+precipitation
+
+Avg_temp = sum(Temperatures)/len(Temperatures)
+Avg_temp
+
+weather_data.describe()
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+data = {
+    'Datetime': Datetime,
+    'Temperatures': Temperatures
+}
+df = pd.DataFrame(data)
+sns.lineplot(x='Datetime', y='Temperatures', data=df)
+
+plt.figure(figsize=(15,6))
+plt.xlabel('Datetime')
+plt.ylabel('precipitation')
+plt.xticks(rotation=90)
+sns.barplot(x=Datetime, y=precipitation)
+
+sns.scatterplot(x=Temperatures,y=Wind_speed)
+plt.title('Wind speed vs Temperature')
+plt.xlabel('Temperatures')
+plt.ylabel('Wind speed')
+
+weather_data['Datetime'] = pd.to_datetime(weather_data['Datetime'])
+weather_data.set_index('Datetime', inplace=True)
+
+daily_mean_temp = weather_data['Temperature'].resample('D').mean()
+daily_mean_humidity = weather_data['Humidity'].resample('D').mean()
+
+sns.lineplot(data=daily_mean_temp)
+
+sns.barplot(daily_mean_humidity)
+plt.show()
+
+plt.plot(Datetime, Temperatures, label="Temperature (°C)")
+plt.plot(Datetime, precipitation, label="Precipitation")
+plt.show()
+
+heatmap_data = weather_df[['Temperature', 'humidity']]
+sns.heatmap(heatmap_data, annot=True, cmap='coolwarm')
+plt.title('Temperature vs Humidity Heatmap')
+plt.show()
+
+plt.scatter(weather_df['Temperature'], weather_df['humidity'])
+plt.xlabel('Temperature (°C)')
+plt.ylabel('Humidity (%)')
+plt.title('Temperature vs Humidity Scatter Plot')
+plt.show()
+
+
+locations = ['London', 'Paris', 'New York']
+weather_df = pd.DataFrame()
+for location in locations:
+    encoded_location = location.replace(" ", "%20")
+    api_key = creds.API_KEY  # Replace with your actual API key
+    api_url = f'http://api.openweathermap.org/data/2.5/weather?q={encoded_location}&appid={api_key}&units=metric'
+    response = requests.get(api_url)
+    data = response.json()
+    temperature = data['main']['temp']
+    humidity = data['main']['humidity']
+    wind_speed = data['wind']['speed']
+    latitude = data.get('coord', {}).get('lat', None)
+    longitude = data.get('coord', {}).get('lon', None)
+    location_df = pd.DataFrame({
+        'Location': [location],
+        'Temperature': [temperature],
+        'Humidity': [humidity],
+        'Wind Speed': [wind_speed],
+        'Latitude': [latitude],
+        'Longitude': [longitude]
+    })
+    weather_df = pd.concat([weather_df, location_df], ignore_index=True)
+weather_df
+
+latitude = data.get("coord", {}).get("lat", 0)
+longitude = data.get("coord", {}).get("lon", 0)
+weather_map = folium.Map(location=[latitude, longitude], zoom_start=10)
+for index, row in weather_df.iterrows():
+ location_name = row['Location']
+ latitude = row['Latitude']
+ longitude = row['Longitude']
+ folium.Marker([latitude, longitude], popup=location_name).add_to(weather_map)
+
+folium.Marker([latitude, longitude], popup=city_name).add_to(weather_map)
+weather_map.save("weather_map.html")
+<---------- DMV-3 ---------->
+import pandas as pd
+import numpy as np
+
+data = pd.read_csv("Telecom_Customer_Churn.csv")
+print(data.index)
+
+data.head()
+data.tail()
+data.shape
+data.nunique()
+print(data.columns)
+data.isna().sum()
+data.describe()
+data.duplicated()
+data = data.drop_duplicates()
+data.duplicated().sum()
+
+data['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+data['SeniorCitizen'] = data['SeniorCitizen'].astype(bool)
+data.dtypes
+
+def identify_outliers_iqr(data, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return data[(data[column] < lower_bound) | (data[column] > upper_bound)]
+
+numerical_columns = data.select_dtypes(include=[np.number]).columns
+outliers = {col: identify_outliers_iqr(df, col) for col in numerical_columns}
+
+outlier_counts = {col: len(outliers[col]) for col in outliers}
+outlier_counts
+
+def remove_outliers_iqr(data, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return data[(data[column] >= lower_bound) & (data[column] <= upper_bound)]
+
+for col in numerical_columns:
+    data = remove_outliers_iqr(data, col)
+
+data.shape
+
+service_columns = [
+    'PhoneService', 'MultipleLines', 'InternetService', 'OnlineSecurity',
+    'OnlineBackup', 'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies'
+]
+
+data['TotalServices'] = data[service_columns].apply(lambda x: x.eq('yes').sum(), axis=1)
+data['ChargesRatio'] = data['MonthlyCharges'] / (data['TotalCharges'] + 1)
+
+def tenure_group(tenure):
+    if tenure <= 12:
+        return '0-1 year'
+    elif tenure <= 24:
+        return '1-2 years'
+    elif tenure <= 48:
+        return '2-4 years'
+    elif tenure <= 60:
+        return '4-5 years'
+    else:
+        return '5+ years'
+
+data['TenureGroup'] = data['tenure'].apply(tenure_group)
+data[['TotalServices', 'ChargesRatio', 'TenureGroup']].head()
+
+from sklearn.preprocessing import StandardScaler
+numerical_columns = ['tenure', 'MonthlyCharges', 'TotalCharges']
+scaler = StandardScaler()
+data[numerical_columns] = scaler.fit_transform(data[numerical_columns])
+data[numerical_columns].head()
+
+from sklearn.model_selection import train_test_split
+
+X = data.drop('Churn', axis=1)
+y = data['Churn']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+data.to_csv("Cleaned_Telecom_Customer_Churn.csv", index=False)
+<---------- DMV-4 ---------->
+import pandas as pd
+import numpy as np
+from matplotlib import pyplot as plt
+%matplotlib inline
+import matplotlib
+matplotlib.rcParams["figure.figsize"] = (20,10)
+
+df1 = pd.read_csv("Bengaluru_House_Data.csv")
+df1.head()
+
+print(df1.shape)
+print(df1.columns)
+df1['area_type']
+df1['area_type'].unique()
+df1['area_type'].value_counts()
+df2 = df1.drop(['area_type','society','balcony','availability'],axis='columns')
+df2.shape
+df2.isnull().sum()
+df2.shape
+df3 = df2.dropna()
+df3.isnull().sum()
+df3.shape
+df3['size'].unique()
+df3['bhk'] = df3['size'].apply(lambda x: int(x.split(' ')[0]))
+df3.head()
+df3.bhk.unique()
+df3[df3.bhk>20]
+df3.total_sqft.unique()
+
+def is_float(x):
+   try:
+     float(x)
+   except:
+     return False
+   return True
+df3[~df3['total_sqft'].apply(is_float)].head(10)
+
+def convert_sqft_to_num(x):
+ tokens = x.split('-')
+ if len(tokens) == 2:
+   return (float(tokens[0])+float(tokens[1]))/2
+ try:
+   return float(x)
+ except:
+   return None
+convert_sqft_to_num('2100 - 2850')
+convert_sqft_to_num('34.46Sq. Meter')
+
+df4 = df3.copy()
+df4.total_sqft = df4.total_sqft.apply(convert_sqft_to_num)
+df4
+
+df4 = df4[df4.total_sqft.notnull()]
+df4
+df4.loc[30]
+
+df5 = df4.copy()
+df5['price_per_sqft'] = df5['price']*100000/df5['total_sqft']
+df5.head()
+
+df5_stats = df5['price_per_sqft'].describe()
+df5_stats
+
+df5.to_csv("bhp.csv",index=False)
+len(df5.location.unique())
+
+df5.location = df5.location.apply(lambda x: x.strip())
+location_stats = df5['location'].value_counts(ascending=False)
+location_stats
+len(location_stats[location_stats>10])
+len(location_stats)
+len(location_stats[location_stats<=10])
+
+location_stats_less_than_10 = location_stats[location_stats<=10]
+location_stats_less_than_10
+len(df5.location.unique())
+df5.location = df5.location.apply(lambda x: 'other' if x in location_stats_less_than_10 else x)
+len(df5.location.unique())
+df5.head(10)
+
+df5[df5.total_sqft/df5.bhk<300].head()
+df5.shape
+df6 = df5[~(df5.total_sqft/df5.bhk<300)]
+df6.shape
+df6.columns
+plt.boxplot(df6['total_sqft'])
+plt.show()
+
+Q1 = np.percentile(df6['total_sqft'], 25.) #same for['bath','price','bhk','price_per_sqft']
+Q3 = np.percentile(df6['total_sqft'], 75.)
+IQR = Q3-Q1
+ll = Q1 - (1.5*IQR)
+ul = Q3 + (1.5*IQR)
+upper_outliers = df6[df6['total_sqft'] > ul].index.tolist()
+lower_outliers = df6[df6['total_sqft'] < ll].index.tolist()
+bad_indices = list(set(upper_outliers + lower_outliers))
+drop = True
+if drop:
+ df6.drop(bad_indices, inplace = True, errors = 'ignore')
+plt.boxplot(df6['bath'])
+plt.show()
+
+df6.shape
+X = df6.drop(['price'],axis='columns')
+X.head(3)
+X.shape
+y = df6.price
+y.head(3)
+len(y)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2,random_state=2)
+print(X_train.shape)
+print(y_train.shape)
+print(X_test.shape)
+print(y_test.shape)
+<---------- DMV-5 ---------->
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.impute import SimpleImputer
+%matplotlib inline
+
+aqi = pd.read_csv("City_Air_Quality.csv", encoding = "ISO-8859-1", parse_dates=['sampling_date'])
+aqi.head()
+
+sns.set(style="ticks", rc = {'figure.figsize':(20,15)})
+import warnings
+warnings.filterwarnings('ignore')
+
+print(aqi.isnull().sum())
+print(aqi.shape)
+aqi.info()
+
+aqi = pd.read_csv("City_Air_Quality.csv", encoding="ISO-8859-1", parse_dates=['sampling_date'])
+aqi = aqi.drop(['stn_code', 'agency', 'sampling_date', 'location_monitoring_station'], axis=1)
+aqi = aqi.dropna(subset=['date'])
+aqi['state'] = aqi['state'].replace({'Uttaranchal': 'Uttarakhand'})
+aqi.loc[aqi['location'] == "Jamshedpur", 'state'] = aqi.loc[aqi['location'] == 'Jamshedpur', 'state'].values
+types = {
+    "Residential": "R",
+    "Residential and others": "RO",
+    "Residential, Rural and other Areas": "RRO",
+    "Industrial Area": "I",
+    "Industrial Areas": "I",
+    "Industrial": "I",
+    "Sensitive Area": "S",
+    "Sensitive Areas": "S",
+    "Sensitive": "S",
+    np.nan: "RRO"
+}
+aqi['type'] = aqi['type'].replace(types)
+print(aqi.head())
+
+VALUE_COLS = ['so2', 'no2', 'rspm', 'spm', 'pm2_5']
+imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+aqi[VALUE_COLS] = imputer.fit_transform(aqi[VALUE_COLS])
+print(aqi.isnull().sum())
+aqi.tail()
+
+VALUE_COLS = ['so2', 'no2', 'rspm', 'spm']
+def plot_for_state(state_name):
+    state_data = aqi[aqi['state'] == state_name]
+
+    if not pd.api.types.is_datetime64_any_dtype(state_data['date']):
+        state_data['date'] = pd.to_datetime(state_data['date'], errors='coerce')
+
+    state_data = state_data.reset_index().set_index('date')[VALUE_COLS]
+    state_yearly_avg = state_data.resample('Y').mean()
+
+    fig, ax = plt.subplots(2, 2, figsize=(20, 12))
+    fig.suptitle(state_name, size=20)
+
+    state_yearly_avg['so2'].plot(legend=True, ax=ax[0][0], title="SO2")
+    ax[0][0].set_ylabel("SO2 (µg/m³)")
+    ax[0][0].set_xlabel("Year")
+
+    state_yearly_avg['no2'].plot(legend=True, ax=ax[0][1], title="NO2")
+    ax[0][1].set_ylabel("NO2 (µg/m³)")
+    ax[0][1].set_xlabel("Year")
+
+    state_yearly_avg['rspm'].plot(legend=True, ax=ax[1][0], title="RSPM")
+    ax[1][0].set_ylabel("RSPM (PM10 µg/m³)")
+    ax[1][0].set_xlabel("Year")
+
+    state_yearly_avg['spm'].plot(legend=True, ax=ax[1][1], title="SPM")
+    ax[1][1].set_ylabel("SPM (PM10 µg/m³)")
+    ax[1][1].set_xlabel("Year")
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.show()
+
+plot_for_state("Uttar Pradesh")
+
+def top_and_bottom_10_states(indicator="so2"):
+    fig, ax = plt.subplots(2, 1, figsize=(20, 12))
+    ind = aqi[[indicator, 'state']].groupby('state', as_index=False).median()
+
+    top10 = sns.barplot(x='state', y=indicator, data=ind[:10], ax=ax[0])
+    top10.set_title("Top 10 states by {} (1991-2016)".format(indicator))
+    top10.set_ylabel("{} (µg/m³)".format(indicator))
+    top10.set_xlabel("State")
+
+    bottom10 = sns.barplot(x='state', y=indicator, data=ind[-10:], ax=ax[1])
+    bottom10.set_title("Bottom 10 states by {} (1991-2016)".format(indicator))
+    bottom10.set_ylabel("{} (µg/m³)".format(indicator))
+    bottom10.set_xlabel("State")
+    
+    plt.tight_layout()
+    plt.show()
+top_and_bottom_10_states("so2")
+top_and_bottom_10_states("no2")
+
+def highest_levels_recorded(indicator="so2"):
+    plt.figure(figsize=(20, 10))
+    ind = aqi[[indicator, 'location', 'state', 'date']].groupby('state', as_index=False).max()
+    highest = sns.barplot(x='state', y=indicator, data=ind)
+    highest.set_title("Highest ever {} levels recorded by state".format(indicator))
+    plt.xticks(rotation=90)
+highest_levels_recorded("no2")
+highest_levels_recorded("rspm")
+
+def yearly_trend(state="", indicator="so2"):
+    plt.figure(figsize=(20,12))
+    aqi['date'] = pd.to_datetime(aqi['date'], errors='coerce')
+    aqi['year'] = aqi['date'].dt.year
+    
+    if state == "":
+        year_wise = aqi[['year', indicator]].groupby('year', as_index=False).mean()
+        trend = sns.pointplot(x='year', y=indicator, data=year_wise)
+        trend.set_title('Yearly trend of {}'.format(indicator))
+    else:
+        state_data = aqi[aqi['state'] == state]
+        year_wise = state_data[['year', indicator]].groupby('year', as_index=False).mean()
+        trend = sns.pointplot(x='year', y=indicator, data=year_wise)
+        trend.set_title('Yearly trend of {} for {}'.format(indicator, state))
+yearly_trend()
+yearly_trend("Goa", "no2")
+
+def indicator_by_state_and_year(indicator="so2"):
+    plt.figure(figsize=(20, 20))
+    hmap = sns.heatmap(
+        data=aqi.pivot_table(values=indicator, index='state', columns='year', aggfunc='median'),
+        annot=True, linewidths=.5, cbar=True, square=True, cmap='inferno', fmt='.1f'
+    )
+    hmap.set_title("{} by state and year".format(indicator))
+indicator_by_state_and_year('no2')
+
+def type_avg(indicator=""):
+ type_avg = aqi[VALUE_COLS + ['type', 'date']].groupby("type").mean()
+ if indicator is not "":
+  t = type_avg[indicator].plot(kind='bar')
+  plt.xticks(rotation = 0)
+  plt.title("Pollutant average by type for {}".format(indicator))
+ else:
+  t = type_avg.plot(kind='bar')
+  plt.xticks(rotation = 0)
+  plt.title("Pollutant average by type")
+type_avg('so2')
+
+def location_avgs(state, indicator="so2"):
+    locs = aqi[VALUE_COLS + ['state', 'location', 'date']].groupby(['state', 'location']).mean()
+    state_avgs = locs.loc[state].reset_index()
+    plt.figure(figsize=(15, 6))
+    sns.barplot(x='location', y=indicator, data=state_avgs, palette='husl')
+    plt.title("Location-wise average for {} in {}".format(indicator, state))
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+location_avgs("Uttar Pradesh", "no2")
+<---------- DMV-6 ---------->
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv("Retail_Sales_Data.csv")
+data.head()
+data.info()
+data.isnull().sum()
+data.describe()
+
+unique_shopping_mall = data["shopping_mall"].unique()
+unique_categories = data["category"].unique()
+unique_shopping_mall
+unique_categories
+
+transaction_count_by_shopping_mall = data["shopping_mall"].value_counts()
+transaction_count_by_shopping_mall
+
+relevant_columns = ["shopping_mall", "price", "category"]
+relevant_columns
+
+sales_by_region = data.groupby("shopping_mall")["price"].sum()
+sales_by_region
+
+plt.figure(figsize=(6, 6))
+plt.pie(sales_by_region, labels=sales_by_region.index, autopct="%1.1f%%", startangle=90)
+plt.title("Sales Distribution by Region")
+plt.axis("equal")
+plt.show()
+
+plt.figure()
+plt.bar(sales_by_region.index, sales_by_region.values)
+plt.xlabel('Region')
+plt.ylabel('Total Sales Amount')
+plt.title('Total Sales Amount by Region')
+plt.show()
+
+top_regions = sales_by_region.sort_values(ascending=False).head(5)
+print("Top-performing regions:")
+print(top_regions)
+
+sales_by_region_category = data.groupby(["shopping_mall", "category"])["price"].sum()
+# sales_by_region_category = data.groupby(["shopping_mall", "category"])["price"].sum().reset_index()
+sales_by_region_category
+
+sales_by_region_category.unstack().plot(kind="bar", stacked=True, figsize=(10, 6))
+plt.title("Sales Comparison by Region and Product Category")
+plt.xlabel("Region")
+plt.ylabel("Total Sales Amount")
+plt.legend(title="Category")
+plt.show()
